@@ -15,7 +15,6 @@ You should have received a copy of the GNU Affero General Public License
 along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import binascii
 import json
 from collections import OrderedDict
@@ -23,7 +22,8 @@ from typing import List, Optional, Tuple
 
 import maya
 import msgpack
-from bytestring_splitter import BytestringSplitter, VariableLengthBytestring, BytestringSplittingError
+from bytestring_splitter import BytestringSplitter, VariableLengthBytestring, BytestringSplittingError, \
+    BytestringKwargifier
 from constant_sorrow.constants import CFRAG_NOT_RETAINED
 from constant_sorrow.constants import NO_DECRYPTION_PERFORMED
 from cryptography.hazmat.backends.openssl import backend
@@ -50,11 +50,6 @@ from nucypher.network.middleware import RestMiddleware
 class TreasureMap:
     from nucypher.policy.policies import Arrangement
     ID_LENGTH = Arrangement.ID_LENGTH  # TODO: Unify with Policy / Arrangement - or is this ok?
-
-    splitter = BytestringSplitter(Signature,
-                                  (bytes, KECCAK_DIGEST_LENGTH),  # hrac
-                                  (UmbralMessageKit, VariableLengthBytestring)
-                                  )
 
     class NowhereToBeFound(RestMiddleware.NotFound):
         """
@@ -88,10 +83,26 @@ class TreasureMap:
             self._m = NO_DECRYPTION_PERFORMED
             self._destinations = NO_DECRYPTION_PERFORMED
 
+        self._id = None
+
         self.message_kit = message_kit
         self._public_signature = public_signature
         self._hrac = hrac
         self._payload = None
+
+        if message_kit is not None:
+            self.message_kit = message_kit
+            self._set_id()
+        else:
+            self.message_kit = None
+
+    @classmethod
+    def splitter(cls):
+        return BytestringKwargifier(cls,
+                                    public_signature=Signature,
+                                    hrac=(bytes, KECCAK_DIGEST_LENGTH),
+                                    message_kit=(UmbralMessageKit, VariableLengthBytestring)
+                                    )
 
     def prepare_for_publication(self,
                                 bob_encrypting_key,
@@ -121,6 +132,10 @@ class TreasureMap:
         self._hrac = keccak_digest(bytes(alice_stamp) + bytes(bob_verifying_key) + label)
         self._public_signature = alice_stamp(bytes(alice_stamp) + self._hrac)
         self._set_payload()
+        self._set_id()
+
+    def _set_id(self):
+        self._id = keccak_digest(bytes(self._verifying_key) + bytes(self._hrac)).hex()
 
     def _set_payload(self):
         self._payload = self._public_signature + self._hrac + bytes(

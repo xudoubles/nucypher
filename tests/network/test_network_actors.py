@@ -14,7 +14,9 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 """
+import datetime
 
+import maya
 import pytest
 from hendrix.experience import crosstown_traffic
 from hendrix.utils.test_utils import crosstownTaskListDecoratorFactory
@@ -129,6 +131,25 @@ def test_treasure_map_is_legit(enacted_federated_policy):
     """
     for ursula_address, _node_id in enacted_federated_policy.treasure_map:
         assert ursula_address in enacted_federated_policy.bob.known_nodes.addresses()
+
+
+@pytest.mark.usefixtures('blockchain_ursulas')
+def test_treasure_map_cannot_be_duplicated(blockchain_alice, blockchain_bob, agency):
+
+    # Setup the policy details
+    n = 3
+    policy_end_datetime = maya.now() + datetime.timedelta(days=5)
+    label = b"this_is_the_path_to_which_access_is_being_granted"
+
+    # Create the Policy, Granting access to Bob
+    policy = blockchain_alice.grant(bob=blockchain_bob,
+                                    label=label,
+                                    m=2,
+                                    n=n,
+                                    rate=int(1e18),  # one ether
+                                    expiration=policy_end_datetime)
+
+    assert False
 
 
 @pytest.mark.skip("See Issue #1075")  # TODO: Issue #1075

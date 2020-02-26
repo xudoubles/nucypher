@@ -183,19 +183,12 @@ class TreasureMap:
         Ursula will refuse to propagate this if it she can't prove the payload is signed by Alice's public key,
         which is included in it,
         """
-        # TODO: No reason to keccak this over and over again.  Turn into set-once property pattern.
-        _id = keccak_digest(bytes(self._verifying_key) + bytes(self._hrac)).hex()
-        return _id
+        return self._id
 
     @classmethod
     def from_bytes(cls, bytes_representation, verify=True):
-        signature, hrac, tmap_message_kit = cls.splitter(bytes_representation)
-
-        treasure_map = cls(
-            message_kit=tmap_message_kit,
-            public_signature=signature,
-            hrac=hrac,
-        )
+        splitter = cls.splitter()
+        treasure_map = splitter(bytes_representation)
 
         if verify:
             treasure_map.public_verify()
@@ -284,18 +277,18 @@ class PolicyCredential:
         cred_json = json.loads(data)
 
         alice_verifying_key = UmbralPublicKey.from_bytes(
-                                    cred_json['alice_verifying_key'],
-                                    decoder=bytes().fromhex)
+            cred_json['alice_verifying_key'],
+            decoder=bytes().fromhex)
         label = bytes().fromhex(cred_json['label'])
         expiration = maya.MayaDT.from_iso8601(cred_json['expiration'])
         policy_pubkey = UmbralPublicKey.from_bytes(
-                            cred_json['policy_pubkey'],
-                            decoder=bytes().fromhex)
+            cred_json['policy_pubkey'],
+            decoder=bytes().fromhex)
         treasure_map = None
 
         if 'treasure_map' in cred_json:
             treasure_map = TreasureMap.from_bytes(
-                                bytes().fromhex(cred_json['treasure_map']))
+                bytes().fromhex(cred_json['treasure_map']))
 
         return cls(alice_verifying_key, label, expiration, policy_pubkey,
                    treasure_map)
@@ -308,7 +301,6 @@ class PolicyCredential:
 
 
 class WorkOrder:
-
     class PRETask:
         def __init__(self, capsule, signature, cfrag=None, cfrag_signature=None):
             self.capsule = capsule
@@ -544,8 +536,8 @@ class Revocation:
     revocation_splitter = BytestringSplitter((bytes, 7), (bytes, 32), Signature)
 
     def __init__(self, arrangement_id: bytes,
-                       signer: 'SignatureStamp' = None,
-                       signature: Signature = None):
+                 signer: 'SignatureStamp' = None,
+                 signature: Signature = None):
 
         self.prefix = b'REVOKE-'
         self.arrangement_id = arrangement_id

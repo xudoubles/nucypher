@@ -1177,7 +1177,7 @@ class Worker(NucypherTokenActor):
                  work_tracker: WorkTracker = None,
                  worker_address: str = None,
                  start_working_now: bool = True,
-                 block_until_ready: bool = True,
+                 block_until_bonded: bool = True,
                  *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -1200,7 +1200,7 @@ class Worker(NucypherTokenActor):
 
         # Workers cannot be started without being assigned a stake first.
         if is_me:
-            if block_until_ready:
+            if block_until_bonded:
                 self.block_until_ready()
             self.stakes = StakeList(registry=self.registry, checksum_address=self.checksum_address)
             self.stakes.refresh()
